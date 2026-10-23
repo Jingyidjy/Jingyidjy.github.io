@@ -1,0 +1,437 @@
+<title>Grok 的交互设计</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* 布局：单栏阅读 + 三张全宽顺序表；冷调纸面，深青作唯一强调色 */
+:root {
+  --paper: #f7f8f7;
+  --surface: #ffffff;
+  --ink: #171b1c;
+  --ink-soft: #4e5a5c;
+  --ink-faint: #7c8a8c;
+  --rule: #d9dedd;
+  --rule-soft: #e8eceb;
+  --accent: #12626b;
+  --accent-soft: #e2eeee;
+  --accent-ink: #0d4a51;
+  --warn: #8a5a12;
+  --font-display: "Newsreader", "Iowan Old Style", Georgia, serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Helvetica Neue", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #101514;
+    --surface: #171e1d;
+    --ink: #e8eeec;
+    --ink-soft: #a5b3b1;
+    --ink-faint: #7b8987;
+    --rule: #2c3938;
+    --rule-soft: #222d2c;
+    --accent: #6cc3c6;
+    --accent-soft: #16302f;
+    --accent-ink: #9ddfe0;
+    --warn: #d7a25a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #101514;
+  --surface: #171e1d;
+  --ink: #e8eeec;
+  --ink-soft: #a5b3b1;
+  --ink-faint: #7b8987;
+  --rule: #2c3938;
+  --rule-soft: #222d2c;
+  --accent: #6cc3c6;
+  --accent-soft: #16302f;
+  --accent-ink: #9ddfe0;
+  --warn: #d7a25a;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 64px;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 860px; margin: 0 auto; }
+
+/* ---- masthead ---- */
+.masthead { border-bottom: 1px solid var(--ink); padding-block: 40px 20px; }
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  display: flex; flex-wrap: wrap; gap: 6px 14px;
+  margin-bottom: 26px;
+}
+.eyebrow b { color: var(--accent); font-weight: 500; }
+.eyebrow a.home {
+  color: var(--accent-ink);
+  text-decoration: none;
+  letter-spacing: .06em;
+}
+.eyebrow a.home:hover { text-decoration: underline; }
+.eyebrow a.home:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+h1 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(38px, 7vw, 62px);
+  line-height: 1.02;
+  letter-spacing: -.015em;
+  margin: 0 0 18px;
+  text-wrap: balance;
+}
+h1 em { font-style: italic; color: var(--accent); }
+.dek {
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.4vw, 22px);
+  line-height: 1.45;
+  color: var(--ink-soft);
+  max-width: 40em;
+  margin: 0;
+}
+.meta {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+}
+.meta div { background: var(--paper); padding: 12px 14px; }
+.meta dt {
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-faint); margin: 0 0 4px;
+}
+.meta dd {
+  margin: 0; font-family: var(--font-mono); font-size: 14px;
+  font-variant-numeric: tabular-nums; color: var(--ink);
+}
+
+/* ---- sections ---- */
+section { padding-block: 44px 8px; border-bottom: 1px solid var(--rule); }
+section:last-of-type { border-bottom: 0; }
+.sec-num {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .12em;
+  color: var(--accent); display: block; margin-bottom: 10px;
+}
+h2 {
+  font-family: var(--font-display);
+  font-size: clamp(26px, 3.6vw, 33px);
+  font-weight: 500; line-height: 1.15; letter-spacing: -.01em;
+  margin: 0 0 10px; text-wrap: balance;
+}
+.lede { color: var(--ink-soft); font-size: 17px; max-width: 42em; margin: 0 0 26px; }
+p { max-width: 42em; }
+h3 {
+  font-family: var(--font-body); font-size: 15px; font-weight: 600;
+  margin: 30px 0 10px; letter-spacing: .01em;
+}
+strong { font-weight: 600; }
+code {
+  font-family: var(--font-mono); font-size: .86em;
+  background: var(--accent-soft); color: var(--accent-ink);
+  padding: 1px 5px; border-radius: 3px;
+}
+
+/* ---- architecture diagram ---- */
+.diagram {
+  background: var(--surface); border: 1px solid var(--rule);
+  padding: 26px 22px; margin: 8px 0 30px; overflow-x: auto;
+}
+.diagram pre {
+  margin: 0; font-family: var(--font-mono); font-size: 12.5px;
+  line-height: 1.75; color: var(--ink); min-width: 560px;
+}
+.diagram pre .hi { color: var(--accent); font-weight: 500; }
+.diag-cap {
+  font-family: var(--font-mono); font-size: 11px; color: var(--ink-faint);
+  margin: 14px 0 0; letter-spacing: .02em;
+}
+
+/* ---- entry table ---- */
+table { width: 100%; border-collapse: collapse; margin: 18px 0 8px; font-size: 14.5px; }
+caption {
+  text-align: left; font-family: var(--font-mono); font-size: 11px;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint);
+  padding-bottom: 8px;
+}
+th {
+  text-align: left; font-weight: 600; font-size: 12px;
+  font-family: var(--font-mono); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-faint); border-bottom: 1px solid var(--ink);
+  padding: 0 14px 8px 0;
+}
+td { padding: 11px 14px 11px 0; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+td:last-child, th:last-child { padding-right: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+.mono-cell { font-family: var(--font-mono); font-size: 13px; color: var(--accent-ink); white-space: nowrap; }
+.tbl-scroll { overflow-x: auto; }
+
+/* ---- cards ---- */
+.cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 18px 0 26px; }
+.card {
+  background: var(--surface); border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent); padding: 16px 18px;
+}
+.card h4 {
+  font-size: 14px; font-weight: 600; margin: 0 0 4px;
+  display: flex; justify-content: space-between; gap: 10px; align-items: baseline;
+}
+.card h4 span {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-faint); font-weight: 400;
+}
+.card p { margin: 0; font-size: 14px; color: var(--ink-soft); line-height: 1.5; max-width: none; }
+
+/* ---- numbered gates (a real sequence) ---- */
+ol.gates { list-style: none; margin: 18px 0 10px; padding: 0; counter-reset: gate; }
+ol.gates li {
+  counter-increment: gate;
+  display: grid; grid-template-columns: 46px 1fr; gap: 16px;
+  padding: 14px 0; border-top: 1px solid var(--rule-soft);
+  align-items: start;
+}
+ol.gates li:first-child { border-top: 1px solid var(--ink); }
+ol.gates li::before {
+  content: counter(gate, decimal-leading-zero);
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--accent); padding-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+ol.gates b { display: block; font-size: 14.5px; font-weight: 600; margin-bottom: 2px; }
+ol.gates span { font-size: 14px; color: var(--ink-soft); }
+
+/* ---- pull quote ---- */
+.pull {
+  font-family: var(--font-display); font-style: italic;
+  font-size: clamp(19px, 2.8vw, 24px); line-height: 1.4;
+  color: var(--ink); border-left: 2px solid var(--accent);
+  padding: 4px 0 4px 20px; margin: 30px 0; max-width: 34em;
+}
+.pull cite {
+  display: block; font-family: var(--font-mono); font-style: normal;
+  font-size: 11px; letter-spacing: .06em; color: var(--ink-faint);
+  margin-top: 12px; text-transform: uppercase;
+}
+
+/* ---- closing list ---- */
+ul.takeaways { list-style: none; padding: 0; margin: 16px 0 0; }
+ul.takeaways li {
+  display: grid; grid-template-columns: 22px 1fr; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid var(--rule-soft); font-size: 15px;
+}
+ul.takeaways li:last-child { border-bottom: 0; }
+ul.takeaways li::before { content: "→"; color: var(--accent); font-family: var(--font-mono); font-size: 13px; }
+
+footer {
+  margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--ink);
+  font-family: var(--font-mono); font-size: 11px; line-height: 1.7;
+  color: var(--ink-faint); letter-spacing: .02em;
+}
+
+@media (max-width: 640px) {
+  .meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cards { grid-template-columns: 1fr; }
+  .masthead { padding-block: 28px 18px; }
+  section { padding-block: 34px 6px; }
+  ol.gates li { grid-template-columns: 30px 1fr; gap: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <div class="eyebrow">
+    <a class="home" href="../../">← 静一读代码</a>
+    <span>·</span>
+    <span>源码分析</span>
+    <span>·</span>
+    <span><b>grok-build</b> @ 2bdd1d6</span>
+    <span>·</span>
+    <span>Rust 工作区</span>
+  </div>
+  <h1>Grok 把「人机交互」<br>做成了<em>协议</em></h1>
+  <p class="dek">三个 Agent 产品里最容易被忽略的一层：当 Agent 卡住等你的时候，界面如何不把这件事弄丢。</p>
+  <dl class="meta">
+    <div><dt>规模</dt><dd>1.80M 行 Rust</dd></div>
+    <div><dt>前端 / 内核</dt><dd>551K / 430K</dd></div>
+    <div><dt>驱动方式</dt><dd>4 种</dd></div>
+    <div><dt>权限闸门</dt><dd>5 道</dd></div>
+  </dl>
+</header>
+
+<section>
+  <span class="sec-num">01 — 架构</span>
+  <h2>一个 Agent，四种入口</h2>
+  <p class="lede">对用户来说产品叫 Grok，只有一个。底层却是一套「协议优先于界面」的结构：agent 核心只认 ACP（JSON-RPC），前端只是决定字节从哪条路走。</p>
+
+  <div class="diagram">
+<pre><span class="hi">TUI</span>  ·  <span class="hi">编辑器</span>  ·  <span class="hi">脚本</span>  ·  <span class="hi">浏览器</span>
+ │        │        │        │
+ ├ 进程内线程            ← 默认快路径，无 IPC
+ ├ stdio（JSON-RPC）    ← Zed / Neovim / SDK
+ ├ <span class="hi">Unix socket</span>        ← ~/.grok/leader.sock
+ │   └─ leader 守护进程：一个 agent，多客户端
+ │     请求 ID 加 <span class="hi">client_id|</span> 前缀，避免并发串味
+ └ WebSocket           ← agent serve / 云端中继
+        │
+        ▼
+   ┌──────────────────────────────────┐
+   │  <span class="hi">MvpAgent</span>  ── 会话 ── 回合 ── 工具 │
+   └──────────────────────────────────┘</pre>
+  </div>
+  <p class="diag-cap">图 1 — 四种驱动方式共用同一个核心；实体线是数据传输层，不是进程边界。</p>
+
+  <div class="tbl-scroll">
+  <table>
+    <caption>四种入口</caption>
+    <thead><tr><th>入口</th><th>给谁用</th><th>传输</th></tr></thead>
+    <tbody>
+      <tr><td class="mono-cell">grok</td><td>人，交互式</td><td>进程内线程，或连本机 leader</td></tr>
+      <tr><td class="mono-cell">agent stdio</td><td>编辑器、SDK、评测脚本</td><td>标准输入输出的 JSON-RPC</td></tr>
+      <tr><td class="mono-cell">-p "…"</td><td>CI、脚本</td><td>一次性提示，退出</td></tr>
+      <tr><td class="mono-cell">agent serve</td><td>自托管服务、远程访问</td><td>WebSocket + 令牌</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>有一个很产品化的取舍：一旦开启 OS 沙箱（macOS seatbelt / Linux landlock），<strong>leader 模式会被禁用</strong>。因为工具必须在进程内跑才待得住沙箱。<em>要么共享，要么隔离，不能既要又要。</em></p>
+</section>
+
+<section>
+  <span class="sec-num">02 — 回合</span>
+  <h2>提交不是发送，是入队</h2>
+  <p class="lede">用户按下 Enter 之后，发生的第一件事不是调用模型，而是把消息放进一个由服务端掌管事实的队列。</p>
+  <p>这是多客户端设计逼出来的：终端和 IDE 可能同时看着同一个会话，队列状态不能各排各的。客户端只画一条乐观回显，等服务端广播 <code>x.ai/queue/changed</code> 回来再确认。</p>
+  <p>随后一轮回合展开，每个工具动作都不是黑箱——它在对话流里占一个<strong>可折叠条目</strong>，带 inline diff、命令输出、失败原因，完成时原地更新。产品没有把 Agent 包装成问答机器人，而是把它呈现成一份<strong>可回放的工作日志</strong>：你随时能滚回去看它为什么改了那行代码。</p>
+
+  <h3>回合结束的原因，分了七种</h3>
+  <p>正常结束、被取消、模型拒答、限流、错误、超 token、超工具次数、被中断——这些对应的是完全不同的收尾界面：限流要提示等待，超 token 要建议压缩上下文，被 hook 拦截要说明理由。它们不该都显示成「出错了」。</p>
+</section>
+
+<section>
+  <span class="sec-num">03 — 打断</span>
+  <h2>三种意图，不合并成一个「取消」</h2>
+  <p class="lede">多数工具把打断做成一个按钮。Grok 拆成了三档，而且刻意不让你误触。</p>
+
+  <div class="cards">
+    <div class="card">
+      <h4>排队 <span>Enter</span></h4>
+      <p>回合运行中按普通 Enter，消息进队列，当前回合跑完再跑。不打断，也不丢。</p>
+    </div>
+    <div class="card">
+      <h4>插话 <span>interject</span></h4>
+      <p>不打断正在做的事，把补充注入到下一个安全间隙。「顺便把测试也加了」不需要杀进程。</p>
+    </div>
+    <div class="card">
+      <h4>立刻停 <span>Ctrl+Enter</span></h4>
+      <p>停掉当前回合，把这条作为下一回合发出。真正的「换方向」。</p>
+    </div>
+    <div class="card">
+      <h4>回退 / 分叉 <span>/rewind · /fork</span></h4>
+      <p>回合之后的操作，和打断正交。前者退回去重来，后者保留历史走另一条路。</p>
+    </div>
+  </div>
+
+  <p>按键语义也被认真区分过：<code>Esc</code> <strong>永远不杀回合</strong>，中途按只提示你去用 <code>Ctrl+C</code>；<code>Ctrl+C</code> 在输入框有草稿时第一次只清草稿，第二次才真取消。空稿双击 <code>Esc</code> 是回退。这三件事砸到同一个键上，是很多工具让人不敢按 Esc 的原因。</p>
+</section>
+
+<section>
+  <span class="sec-num">04 — 等待</span>
+  <h2>Agent 等人时的四种卡片</h2>
+  <p class="lede">交互的关键不是「发消息」，而是当 Agent 停下来等你时，界面怎么保证你既不迷路、也不丢东西。</p>
+  <p>Grok 明确定义了四种会接管键盘的阻塞界面，并给它们一条<strong>统一的键盘契约</strong>：<code>Tab</code> 只在卡内循环、绝不逃出去；<code>Esc</code> 是一格一格往回退而不是粗暴关闭；退到底会把键盘「停在对话流」上让你翻上下文，卡片仍留在屏上，底部提示会写着 <code>Tab/Space: question</code> 把你带回来。</p>
+
+  <div class="tbl-scroll">
+  <table>
+    <caption>同时打开时的优先级</caption>
+    <thead><tr><th>顺序</th><th>卡片</th><th>它问什么</th></tr></thead>
+    <tbody>
+      <tr><td class="mono-cell">1</td><td>权限审批</td><td>这条命令 / 这个文件改动，准不准</td></tr>
+      <tr><td class="mono-cell">2</td><td>取消回合面板</td><td>多个子 Agent 在跑，停哪些</td></tr>
+      <tr><td class="mono-cell">3</td><td>提问卡</td><td>Agent 主动问你，可多选、可自由填写</td></tr>
+      <tr><td class="mono-cell">4</td><td>MCP 征询卡</td><td>外部服务器要表单或 URL 授权</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <blockquote class="pull">
+    「用户没看见」不等于「用户拒绝」。后台 Agent 的提问不会因为当时没人在看就被判失败。
+    <cite>ask_user_question 的悬停设计</cite>
+  </blockquote>
+
+  <p>这条最见功力。在多会话并行时，后台会话发来的提问如果找不到归属视图，代码<strong>故意不返回错误</strong>，而是让请求悬着，等客户端接上后由 leader 重放。否则多 Agent 协作会不断因为「没人看」而莫名其妙地失败。</p>
+</section>
+
+<section>
+  <span class="sec-num">05 — 信任</span>
+  <h2>一次工具调用，过五道闸</h2>
+  <p class="lede">信任不是一次开关，是逐步下放的。顺序固定，规则先于模式。</p>
+
+  <ol class="gates">
+    <li><span><b>PreToolUse hook</b><span>用户自己的代码可否决；但它放行不代表跳过后面几道。</span></span></li>
+    <li><span><b>权限规则</b><span>deny &gt; ask &gt; allow，按项目作用域。</span></span></li>
+    <li><span><b>已记住的授权</b><span>「这条命令以后都行」沉下来，不必反复问。</span></span></li>
+    <li><span><b>只读白名单</b><span>读文件、git log、rg 等自动放行；shell 按 <code>&amp;&amp;</code>、<code>|</code> 分段逐段判定。</span></span></li>
+    <li><span><b>模式策略</b><span>默认问 / acceptEdits / auto（分类器先判，拿不准再弹） / dontAsk / always-approve。</span></span></li>
+  </ol>
+
+  <p>审批弹窗里不只有是 / 否。你可以<strong>顺手塞一句话回给模型</strong>——「可以，但用 pnpm」。这是把「批准」和「纠偏」合并成一个动作。</p>
+
+  <h3>Plan mode 是硬边界，不是提示词</h3>
+  <p>进入后除 <code>plan.md</code> 外一切写入都会被直接拒绝，<strong>连 always-approve 也破不了例</strong>。Agent 自己觉得任务有歧义时能申请进入，但要用户点头；收尾时把计划摊开供你逐行评论、批准或打回。结构性的不可逆操作，用结构性的机制来拦。</p>
+  <p>沙箱是第二层：权限决定「准不准干」，沙箱决定「干了也出不去」。</p>
+</section>
+
+<section>
+  <span class="sec-num">06 — 扩展</span>
+  <h2>人还能往回路里插代码</h2>
+  <p class="lede">Hooks 不只是拦截器，它能改写 Agent 看到的世界。</p>
+  <p><code>Stop</code> hook 可以<strong>阻止回合结束</strong>并把理由喂回去——「测试还没过，继续」。<code>PostToolUse</code> 可以改写模型看到的工具输出（脱敏、截断），而真实结果仍留在日志里。Skills 按项目 → 仓库 → 用户逐层发现，并且<strong>同时扫描 <code>~/.claude/skills</code> 和 <code>~/.cursor/skills</code></strong>。</p>
+  <p>最后这点是明确的产品策略：让你从别家迁移过来时，手上那套技能直接能用。工具层里甚至同时存在从 <code>openai/codex</code> 和 <code>sst/opencode</code> 移植的实现，并提供多套「工具命名空间」——同一能力，多种话术，按模型配置选。兼容做到了提示层。</p>
+</section>
+
+<section>
+  <span class="sec-num">07 — 结论</span>
+  <h2>它到底怎么理解「人机交互」</h2>
+
+  <ul class="takeaways">
+    <li><span>Agent 不是聊天对象，是一个可审计的执行者。所以一切流式可见、可折叠、可复制、可回放。</span></li>
+    <li><span>人是监督者，不是操作员。所以默认问、逐步放权、有只读白名单、有分类器、有逃生门。</span></li>
+    <li><span>打断是三种意图，不是一种。停止、插话、回退各归各，按键也不共用一个。</span></li>
+    <li><span>Agent 等人的那几秒决定体验。所以四种卡片共用一套键盘契约，Esc 永远不丢东西。</span></li>
+    <li><span>协议优先于界面。真正被产品化的是 agent 核心，终端界面只是众多前端之一。</span></li>
+    <li><span>迁移摩擦要主动消除。兼容别家的 skills 与工具实现，是为了让人不必因为换工具而重学一套。</span></li>
+  </ul>
+</section>
+
+<footer>
+  基于 xai-org/grok-build（commit 2bdd1d6）源码与随仓库发布的用户指南分析。<br>
+  引用行号对应本地检出，随上游同步可能漂移。分析仅描述公开仓库中的实现。
+</footer>
+
+</div>
